@@ -86,15 +86,8 @@ def deconvolveMSs(vis, refant, dopol, nloops, loop, cell, robust, imsize, wprojp
                   gridder, deconvolver, solint, calmode, discard_nloops, gaintype, outlier_threshold, outlier_radius, flag, atrous_do):
     
     imbase,imagename,outimage,pixmask,rmsfile,caltable,prev_caltables,threshold,outlierfile,cfcache,_,_,_,_ = bookkeeping.get_selfcal_args(vis,loop,nloops,nterms,deconvolver,discard_nloops,calmode,outlier_threshold,outlier_radius,threshold,step='tclean')
-    
-    
-    # calcpsf = True
-    
-    # print(vis)
-        
-#     imagename = f"{os.getcwd().split('/')[-1]}_im_0"
-#     outlierfile = ''
-#     pixmask = ''
+    calcpsf = True
+
     
     vis = vis.split(',')
 
@@ -117,9 +110,8 @@ def deconvolveMSs(vis, refant, dopol, nloops, loop, cell, robust, imsize, wprojp
 
 
  
-def makeMask(params):
+def makeMask(params, method='default'):
     
-    method = params.pop('method')[0]
     if method == 'default':
         rmsmap,outlierfile = find_outliers(**params,step='bdsf')
         params.pop('atrous_do')
@@ -134,12 +126,14 @@ def makeMask(params):
     
 if __name__ == '__main__':
 
-    args,params = bookkeeping.get_selfcal_params()    
+    args,params = bookkeeping.get_selfcal_params()
+    method = params.pop('method')[0]
+    
     ##blind deconvolution
-    # deconvolveTracks(**params)
+    deconvolveMSs(**params)
     
     #make mask for imaging    
-    rmsmap, outlierfile, pixmask = makeMask(params)
+    rmsmap, outlierfile, pixmask = makeMask(params,method=method)
     
     
     loop = params['loop']

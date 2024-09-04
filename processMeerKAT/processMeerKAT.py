@@ -70,7 +70,7 @@ MPI_WRAPPER = 'mpirun'
 PRECAL_SCRIPTS = [('calc_refant.py',False,''),('partition.py',True,'')] #Scripts run before calibration at top level directory when nspw > 1
 POSTCAL_SCRIPTS_CONT = [('concat.py',False,''),('plotcal_spw.py', False, ''),('selfcal_part1.py',True,''),('selfcal_part2.py',False,''),('science_image.py', True,'')] 
 POSTCAL_SCRIPTS_LINE = [('concat.py',False,''), ('plotcal_spw.py', False, ''), ('selfcal_part1.py',True,''), ('selfcal_part2.py',False,''), ('uvsub.py', False, ''), ('uvcontsub.py', True, ''), ('science_image.py', False, '')]
-POSTCAL_SCRIPTS_COMB = [('prepareTracks.py',False,''),('science_image.py',True,'')]                                                                               
+POSTCAL_SCRIPTS_COMB = [('prepareTracks.py',True,''),('science_image.py',True,'')]                                                                               
 SCRIPTS = [('validate_input.py',False,''),
          ('flag_round_1.py',True,''),
          ('calc_refant.py',False,''),
@@ -257,15 +257,22 @@ def parse_args():
         # global POSTCAL_SCRIPTS 
             
 
+    if args.combtracks:
+        args.do2GC = True
+        args.science_image = True
+    
                         
     #if user inputs a list a scripts, remove the default list
     if len(args.scripts) > len(SCRIPTS):
         [args.scripts.pop(0) for i in range(len(SCRIPTS))]
     if len(args.precal_scripts) > len(PRECAL_SCRIPTS):
         [args.precal_scripts.pop(0) for i in range(len(PRECAL_SCRIPTS))]    
-    if len(args.postcal_scripts) > len(POSTCAL_SCRIPTS):
-        [args.postcal_scripts.pop(0) for i in range(len(POSTCAL_SCRIPTS))]
-
+    if args.doCONT:
+        if len(args.postcal_scripts) > len(POSTCAL_SCRIPTS_CONT):
+            [args.postcal_scripts.pop(0) for i in range(len(POSTCAL_SCRIPTS_CONT))]
+    elif args.doLINE:
+        if len(args.postcal_scripts) > len(POSTCAL_SCRIPTS_LINE):
+            [args.postcal_scripts.pop(0) for i in range(len(POSTCAL_SCRIPTS_LINE))]
     #validate arguments before returning them
     validate_args(vars(args),args.config,parser=parser)
     return args
@@ -1048,9 +1055,9 @@ def write_jobs(config, scripts=[], threadsafe=[], containers=[], num_precal_scri
     if  crosscal_kwargs['nspw'] > 1:
         #Build master master script, calling each of the separate SPWs at once, precal scripts before this, and postcal scripts after this
         write_spw_master(MASTER_SCRIPT,config,SPWs=crosscal_kwargs['spw'],precal_scripts=precal_scripts,postcal_scripts=postcal_scripts,submit=submit,pad_length=pad_length,dependencies=dependencies,timestamp=timestamp,slurm_kwargs=kwargs)
-    # else:
-    #     #Build master pipeline submission script
-    #     write_master(MASTER_SCRIPT,config,scripts=scripts,submit=submit,pad_length=pad_length,verbose=verbose,echo=echo,dependencies=dependencies,slurm_kwargs=kwargs)
+    else:
+        #Build master pipeline submission script
+        write_master(MASTER_SCRIPT,config,scripts=scripts,submit=submit,pad_length=pad_length,verbose=verbose,echo=echo,dependencies=dependencies,slurm_kwargs=kwargs)
 
 
 def default_config(arg_dict):
@@ -1647,6 +1654,7 @@ def main():
     #Parse command-line arguments, and setup logger
     args = parse_args()
     setup_logger(args.config,args.verbose)
+ 
 
     #Mutually exclusive arguments - display version, build config file or run pipeline
     if args.version:
@@ -1659,7 +1667,6 @@ def main():
         default_config_comb(vars(args))
     if args.run:
         kwargs = format_args(args.config,args.submit,args.quiet,args.dependencies,args.justrun)
-        print(kwargs)
         write_jobs(args.config, **kwargs)
 
 if __name__ == "__main__":
