@@ -226,7 +226,7 @@ def parse_args():
     parser.add_argument("-j","--justrun", action="store_true", required=False, default=False, help="Just run the pipeline, don't rebuild each job script if it exists [default: False].")
     
     parser.add_argument("-CT","--doCONT", action="store_true", required=False, default=False, help="Set up for continuum reduction/imaging")
-    parser.add_argument("-SL","--doLINE", action="store_true", required=False, default=True, help="Set up for spectral line reduction/imaging")
+    parser.add_argument("-SL","--doLINE", action="store_true", required=False, default=False, help="Set up for spectral line reduction/imaging")
 
     #add mutually exclusive group - don't want to build config, run pipeline, or display version at same time
     run_args = parser.add_mutually_exclusive_group(required=True)

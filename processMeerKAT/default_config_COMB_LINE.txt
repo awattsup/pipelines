@@ -26,7 +26,7 @@ reservation = ''
 modules = ['openmpi/4.0.3']
 verbose = False
 precal_scripts = []
-postcal_scripts = [('prepareTracks.py', False, ''), ('science_image.py', False, '')]
+postcal_scripts = [('prepareTracks.py', True, ''), ('science_image.py', False, '')]
 scripts = []
 
 [crosscal]
