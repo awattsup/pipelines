@@ -37,10 +37,10 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(asctime)-15s %(levelname)s: %(message)s")
 
 #Set global limits for current ilifu cluster configuration
-TOTAL_NODES_LIMIT = 59
-CPUS_PER_NODE_LIMIT = 32
+TOTAL_NODES_LIMIT = 3
+CPUS_PER_NODE_LIMIT = 48
 NTASKS_PER_NODE_LIMIT = CPUS_PER_NODE_LIMIT
-MEM_PER_NODE_GB_LIMIT = 251 #257568 MB
+MEM_PER_NODE_GB_LIMIT = 374 #257568 MB
 MEM_PER_NODE_GB_LIMIT_HIGHMEM = 1508 #1544192 MB
 
 #Set global values for paths and file names
@@ -50,7 +50,10 @@ LOG_DIR = 'logs'
 CALIB_SCRIPTS_DIR = 'crosscal_scripts'
 AUX_SCRIPTS_DIR = 'aux_scripts'
 SELFCAL_SCRIPTS_DIR = 'selfcal_scripts'
-CONFIG = 'default_config.txt'
+CONFIG_CONT = 'default_config_CONT.txt'
+CONFIG_LINE = 'default_config_LINE.txt'
+CONFIG_COMB_CONT = 'default_config_COMB_CONT.txt'
+CONFIG_COMB_LINE = 'default_config_COMB_LINE.txt'
 TMP_CONFIG = '.config.tmp'
 MASTER_SCRIPT = 'submit_pipeline.sh'
 SPW_PREFIX = '*:'
@@ -62,21 +65,35 @@ SELFCAL_CONFIG_KEYS = ['nloops','loop','cell','robust','imsize','wprojplanes','n
 IMAGING_CONFIG_KEYS = ['cell', 'robust', 'imsize', 'wprojplanes', 'niter', 'threshold', 'multiscale', 'nterms', 'gridder', 'deconvolver', 'specmode', 'uvtaper', 'restfreq', 'fitspw', 'fitorder', 'restoringbeam', 'stokes', 'mask', 'rmsmap','outlierfile', 'pbthreshold', 'pbband']
 SLURM_CONFIG_STR_KEYS = ['container','mpi_wrapper','partition','time','name','dependencies','exclude','account','reservation']
 SLURM_CONFIG_KEYS = ['nodes','ntasks_per_node','mem','plane','submit','precal_scripts','postcal_scripts','scripts','verbose','modules'] + SLURM_CONFIG_STR_KEYS
-CONTAINER = '/idia/software/containers/casa-6.6.0-modular.sif'
+CONTAINER = '/home/awatts/Scisoft/containers/casa-6.simg'
 MPI_WRAPPER = 'mpirun'
 PRECAL_SCRIPTS = [('calc_refant.py',False,''),('partition.py',True,'')] #Scripts run before calibration at top level directory when nspw > 1
-POSTCAL_SCRIPTS = [('concat.py',False,''),('plotcal_spw.py', False, ''),('selfcal_part1.py',True,''),('selfcal_part2.py',False,''),('science_image.py', True, '')] #Scripts run after calibration at top level directory when nspw > 1
-SCRIPTS = [ ('validate_input.py',False,''),
-            ('flag_round_1.py',True,''),
-            ('calc_refant.py',False,''),
-            ('setjy.py',True,''),
-            ('xx_yy_solve.py',False,''),
-            ('xx_yy_apply.py',True,''),
-            ('flag_round_2.py',True,''),
-            ('xx_yy_solve.py',False,''),
-            ('xx_yy_apply.py',True,''),
-            ('split.py',True,''),
-            ('quick_tclean.py',True,'')]
+POSTCAL_SCRIPTS_CONT = [('concat.py',False,''),('plotcal_spw.py', False, ''),('selfcal_part1.py',True,''),('selfcal_part2.py',False,''),('science_image.py', True,'')] 
+POSTCAL_SCRIPTS_LINE = [('concat.py',False,''), ('plotcal_spw.py', False, ''), ('selfcal_part1.py',True,''), ('selfcal_part2.py',False,''), ('uvsub.py', False, ''), ('uvcontsub.py', True, ''), ('science_image.py', False, '')]
+POSTCAL_SCRIPTS_COMB = [('prepareTracks.py',False,''),('science_image.py',True,'')]                                                                               
+SCRIPTS = [('validate_input.py',False,''),
+         ('flag_round_1.py',True,''),
+         ('calc_refant.py',False,''),
+         ('setjy.py',True,''),
+         ('xx_yy_solve.py',False,''),
+         ('xx_yy_apply.py',True,''),
+         ('flag_round_2.py',True,''),
+         ('xx_yy_solve.py',False,''),
+         ('xx_yy_apply.py',True,''),
+         ('split.py',True,''),
+         ('quick_tclean.py',True,'')]
+# POSTCAL_SCRIPTS = [('concat.py',False,''),('plotcal_spw.py', False, ''),('selfcal_part1.py',True,''),('selfcal_part2.py',False,''),('science_image.py', True, '')] #Scripts run after calibration at top level directory when nspw > 1
+# SCRIPTS = [ ('validate_input.py',False,''),
+#             ('flag_round_1.py',True,''),
+#             ('calc_refant.py',False,''),
+#             ('setjy.py',True,''),
+#             ('xx_yy_solve.py',False,''),
+#             ('xx_yy_apply.py',True,''),
+#             ('flag_round_2.py',True,''),
+#             ('xx_yy_solve.py',False,''),
+#             ('xx_yy_apply.py',True,''),
+#             ('split.py',True,''),
+#             ('quick_tclean.py',True,'')]
 
 
 def check_path(path,update=False):
@@ -149,7 +166,6 @@ def check_bash_path(fname):
     return fname
 
 def parse_args():
-
     """Parse arguments into this script.
 
     Returns:
@@ -174,7 +190,7 @@ def parse_args():
     parser = argparse.ArgumentParser(prog=THIS_PROG,description='Process MeerKAT data via CASA MeasurementSet. Version: {0}'.format(__version__))
 
     parser.add_argument("-M","--MS",metavar="path", required=False, type=str, help="Path to MeasurementSet.")
-    parser.add_argument("-C","--config",metavar="path", default=CONFIG, required=False, type=str, help="Relative (not absolute) path to config file.")
+    parser.add_argument("-C","--config",metavar="path", default="default_config.txt", required=False, type=str, help="Relative (not absolute) path to config file.")
     parser.add_argument("-N","--nodes",metavar="num", required=False, type=int, default=1,
                         help="Use this number of nodes [default: 1; max: {0}].".format(TOTAL_NODES_LIMIT))
     parser.add_argument("-t","--ntasks-per-node", metavar="num", required=False, type=int, default=8,
@@ -183,12 +199,12 @@ def parse_args():
                             help="Distribute tasks of this block size before moving onto next node [default: 1; max: ntasks-per-node].")
     parser.add_argument("-m","--mem", metavar="num", required=False, type=int, default=MEM_PER_NODE_GB_LIMIT,
                         help="Use this many GB of memory (per node) for threadsafe scripts [default: {0}; max: {0}].".format(MEM_PER_NODE_GB_LIMIT))
-    parser.add_argument("-p","--partition", metavar="name", required=False, type=str, default="Main", help="SLURM partition to use [default: 'Main'].")
+    parser.add_argument("-p","--partition", metavar="name", required=False, type=str, default="main", help="SLURM partition to use [default: 'Main'].")
     parser.add_argument("-T","--time", metavar="time", required=False, type=str, default="12:00:00", help="Time limit to use for all jobs, in the form d-hh:mm:ss [default: '12:00:00'].")
     parser.add_argument("-S","--scripts", action='append', nargs=3, metavar=('script','threadsafe','container'), required=False, type=parse_scripts, default=SCRIPTS,
                         help="Run pipeline with these scripts, in this order, using these containers (3rd value - empty string to default to [-c --container]). Is it threadsafe (2nd value)?")
     parser.add_argument("-b","--precal_scripts", action='append', nargs=3, metavar=('script','threadsafe','container'), required=False, type=parse_scripts, default=PRECAL_SCRIPTS, help="Same as [-S --scripts], but run before calibration.")
-    parser.add_argument("-a","--postcal_scripts", action='append', nargs=3, metavar=('script','threadsafe','container'), required=False, type=parse_scripts, default=POSTCAL_SCRIPTS, help="Same as [-S --scripts], but run after calibration.")
+    parser.add_argument("-a","--postcal_scripts", action='append', nargs=3, metavar=('script','threadsafe','container'), required=False, type=parse_scripts, default=POSTCAL_SCRIPTS_LINE, help="Same as [-S --scripts], but run after calibration.")
     parser.add_argument("--modules", nargs='*', metavar='module', required=False, default=['openmpi/4.0.3'], help="Load these modules within each sbatch script.")
     parser.add_argument("-w","--mpi_wrapper", metavar="path", required=False, type=str, default=MPI_WRAPPER,
                         help="Use this mpi wrapper when calling threadsafe scripts [default: '{0}'].".format(MPI_WRAPPER))
@@ -208,10 +224,14 @@ def parse_args():
     parser.add_argument("-I","--science_image", action="store_true", required=False, default=False, help="Create a science image [default: False].")
     parser.add_argument("-x","--nofields", action="store_true", required=False, default=False, help="Do not read the input MS to extract field IDs [default: False].")
     parser.add_argument("-j","--justrun", action="store_true", required=False, default=False, help="Just run the pipeline, don't rebuild each job script if it exists [default: False].")
+    
+    parser.add_argument("-CT","--doCONT", action="store_true", required=False, default=False, help="Set up for continuum reduction/imaging")
+    parser.add_argument("-SL","--doLINE", action="store_true", required=False, default=True, help="Set up for spectral line reduction/imaging")
 
     #add mutually exclusive group - don't want to build config, run pipeline, or display version at same time
     run_args = parser.add_mutually_exclusive_group(required=True)
     run_args.add_argument("-B","--build", action="store_true", required=False, default=False, help="Build config file using input MS.")
+    run_args.add_argument("-BC","--combtracks", action="store_true",required=False, default=False, help="Build config file to image multiple tracks")
     run_args.add_argument("-R","--run", action="store_true", required=False, default=False, help="Run pipeline with input config file.")
     run_args.add_argument("-V","--version", action="store_true", required=False, default=False, help="Display the version of this pipeline and quit.")
     run_args.add_argument("-L","--license", action="store_true", required=False, default=False, help="Display this program's license and quit.")
@@ -227,11 +247,22 @@ def parse_args():
         if not os.path.exists(args.config):
             parser.error("Input config file '{0}' not found. Please set [-C --config] or write a new one with [-B --build].".format(args.config))
 
+    global POSTCAL_SCRIPTS
+    if args.doCONT:
+        POSTCAL_SCRIPTS = POSTCAL_SCRIPTS_CONT
+        # global POSTCAL_SCRIPTS 
+
+    elif args.doLINE:
+        POSTCAL_SCRIPTS = POSTCAL_SCRIPTS_LINE
+        # global POSTCAL_SCRIPTS 
+            
+
+                        
     #if user inputs a list a scripts, remove the default list
     if len(args.scripts) > len(SCRIPTS):
         [args.scripts.pop(0) for i in range(len(SCRIPTS))]
     if len(args.precal_scripts) > len(PRECAL_SCRIPTS):
-        [args.precal_scripts.pop(0) for i in range(len(PRECAL_SCRIPTS))]
+        [args.precal_scripts.pop(0) for i in range(len(PRECAL_SCRIPTS))]    
     if len(args.postcal_scripts) > len(POSTCAL_SCRIPTS):
         [args.postcal_scripts.pop(0) for i in range(len(POSTCAL_SCRIPTS))]
 
@@ -279,8 +310,13 @@ def validate_args(args,config,parser=None):
         if args['MS'] not in [None,'None'] and not os.path.isdir(args['MS']):
             msg = "Input MS '{0}' not found.".format(args['MS'])
             raise_error(config, msg, parser)
+    
+    if parser is None or args['combtracks']:
+        if args['MS'] is None and not args['nofields']:
+            msg = "You must input the reduction directories as a single comma separated string into MS [-M --MS] to build the config file."
+            raise_error(config, msg, parser)
 
-    if parser is not None and not args['build'] and args['MS']:
+    if parser is not None and not args['build'] and not args['combtracks'] and args['MS']:
         msg = "Only input an MS [-M --MS] during [-B --build] step. Otherwise input is ignored."
         raise_error(config, msg, parser)
 
@@ -398,7 +434,7 @@ def write_command(script,args,name='job',mpi_wrapper=MPI_WRAPPER,container=CONTA
 
         """ % SPWs.replace(',',' ').replace(SPW_PREFIX,'')
 
-    command += "{mpi_wrapper} singularity exec {container} {plot_call} {casa_call} {script} {args}".format(**params)
+    command += "{mpi_wrapper} singularity exec --bind /scratch/awatts:/scratch/awatts --bind /mnt/science1/mauve:/mnt/science1/mauve {container} {plot_call} {casa_call} {script} {args}".format(**params)
 
     if arrayJob:
         command += '\ncd ..\n'
@@ -516,7 +552,6 @@ def write_sbatch(script,args,nodes=1,tasks=16,mem=MEM_PER_NODE_GB_LIMIT,name="jo
                 params['modules'] += "module load {0}\n".format(module)
 
     contents = """#!/bin/bash{array}{exclude}{reservation}
-    #SBATCH --account={account}
     #SBATCH --nodes={nodes}
     #SBATCH --ntasks-per-node={tasks}
     #SBATCH --cpus-per-task={cpus}
@@ -529,7 +564,11 @@ def write_sbatch(script,args,nodes=1,tasks=16,mem=MEM_PER_NODE_GB_LIMIT,name="jo
 
     export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
     export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
-    {modules}
+    #module use --append /home/awatts/privatemodules
+
+    source /home/awatts/Scisoft/miniconda3/bin/activate procMKT-mpi
+
+    #{modules}
 
     {command}"""
 
@@ -923,7 +962,7 @@ def srun(arg_dict,qos=True,time=10,mem=4):
     return call
 
 def write_jobs(config, scripts=[], threadsafe=[], containers=[], num_precal_scripts=0, mpi_wrapper=MPI_WRAPPER, nodes=8, ntasks_per_node=4, mem=MEM_PER_NODE_GB_LIMIT,plane=1, partition='Main',
-               time='12:00:00', submit=False, name='', verbose=False, quiet=False, dependencies='', exclude='', account='b03-idia-ag', reservation='', modules=[], timestamp='', justrun=False):
+               time='12:00:00', submit=False, name='', verbose=False, quiet=False, dependencies='', exclude='', account='b03-idia-ag', reservation='', modules=[], timestamp='', justrun=False,combTracks=False):
 
     """Write a series of sbatch job files to calibrate a CASA MeasurementSet.
 
@@ -973,13 +1012,21 @@ def write_jobs(config, scripts=[], threadsafe=[], containers=[], num_precal_scri
         Modules to load upon execution of sbatch script.
     timestamp : str, optional
         Timestamp to put on this run and related runs in SPW directories.
-    justrun : bool, optionall
-        Just run the pipeline without rebuilding each job script (if it exists)."""
-
+    justrun : bool, optional
+        Just run the pipeline without rebuilding each job script (if it exists).
+    combTracks : bool, optional
+        Combining multiple tracks. """
+    
     kwargs = locals()
+    # if not combTracks:
     crosscal_kwargs = get_config_kwargs(config, 'crosscal', CROSSCAL_CONFIG_KEYS)
+    # elif combTracks:
+    #     crosscal_kwargs = {'spw':'*:880~933MHz,*:960~1010MHz,*:1010~1060MHz,*:1060~1110MHz,*:1110~1163MHz,*:1299~1350MHz,*:1350~1400MHz,*:1400~1450MHz,*:1450~1500MHz,*:1500~1524MHz,*:1630~1680MHz',
+    #                       'nspw':11}
     pad_length = len(name)
 
+    # print(scripts)
+    # exit()
     #Write sbatch file for each input python script
     for i,script in enumerate(scripts):
         jobname = os.path.splitext(os.path.split(script)[1])[0]
@@ -992,18 +1039,18 @@ def write_jobs(config, scripts=[], threadsafe=[], containers=[], num_precal_scri
             write_sbatch(script,'--config {0}'.format(TMP_CONFIG),nodes=1,tasks=1,mem=mem,plane=1,mpi_wrapper='srun',container=containers[i],partition=partition,time=time,name=jobname,
                         runname=name,SPWs=crosscal_kwargs['spw'],nspw=crosscal_kwargs['nspw'],exclude=exclude,account=account,reservation=reservation,modules=modules,justrun=justrun)
 
-    #Replace all .py with .sbatch
-    scripts = [os.path.split(scripts[i])[1].replace('.py','.sbatch') for i in range(len(scripts))]
-    precal_scripts = scripts[:num_precal_scripts]
-    postcal_scripts = scripts[num_precal_scripts:]
-    echo = False if quiet else True
-
-    if crosscal_kwargs['nspw'] > 1:
+        #Replace all .py with .sbatch
+        scripts = [os.path.split(scripts[i])[1].replace('.py','.sbatch') for i in range(len(scripts))]
+        precal_scripts = scripts[:num_precal_scripts]
+        postcal_scripts = scripts[num_precal_scripts:]
+        echo = False if quiet else True
+# not combTracks and
+    if  crosscal_kwargs['nspw'] > 1:
         #Build master master script, calling each of the separate SPWs at once, precal scripts before this, and postcal scripts after this
         write_spw_master(MASTER_SCRIPT,config,SPWs=crosscal_kwargs['spw'],precal_scripts=precal_scripts,postcal_scripts=postcal_scripts,submit=submit,pad_length=pad_length,dependencies=dependencies,timestamp=timestamp,slurm_kwargs=kwargs)
-    else:
-        #Build master pipeline submission script
-        write_master(MASTER_SCRIPT,config,scripts=scripts,submit=submit,pad_length=pad_length,verbose=verbose,echo=echo,dependencies=dependencies,slurm_kwargs=kwargs)
+    # else:
+    #     #Build master pipeline submission script
+    #     write_master(MASTER_SCRIPT,config,scripts=scripts,submit=submit,pad_length=pad_length,verbose=verbose,echo=echo,dependencies=dependencies,slurm_kwargs=kwargs)
 
 
 def default_config(arg_dict):
@@ -1019,7 +1066,10 @@ def default_config(arg_dict):
     MS = arg_dict['MS']
 
     #Copy default config to current location
-    copyfile('{0}/{1}'.format(SCRIPT_DIR,CONFIG),filename)
+    if arg_dict['doCONT']:
+        copyfile('{0}/{1}'.format(SCRIPT_DIR,CONFIG_CONT),filename)
+    elif arg_dict['doLINE']:
+        copyfile('{0}/{1}'.format(SCRIPT_DIR,CONFIG_LINE),filename)
 
     #Add SLURM CL arguments to config file under section [slurm]
     slurm_dict = get_slurm_dict(arg_dict,SLURM_CONFIG_KEYS)
@@ -1093,6 +1143,44 @@ def default_config(arg_dict):
 
     logger.info('Config "{0}" generated.'.format(filename))
 
+def default_config_comb(arg_dict):
+
+    """Generate default config file in current directory, pointing to MS, with fields and SLURM parameters set.
+
+    Arguments:
+    ----------
+    arg_dict : dict
+        Dictionary of arguments passed into this script, which is inserted into the config file under various sections."""
+
+    filename = arg_dict['config']
+    MS = arg_dict['MS']
+
+    #Copy default config to current location
+    if arg_dict['doCONT']:
+        copyfile('{0}/{1}'.format(SCRIPT_DIR,CONFIG_COMB_CONT),filename)
+    elif arg_dict['doLINE']:
+        copyfile('{0}/{1}'.format(SCRIPT_DIR,CONFIG_COMB_LINE),filename)
+
+    #Add SLURM CL arguments to config file under section [slurm]
+    slurm_dict = get_slurm_dict(arg_dict,SLURM_CONFIG_KEYS)
+    for key in SLURM_CONFIG_STR_KEYS:
+        if key in slurm_dict.keys(): slurm_dict[key] = "'{0}'".format(slurm_dict[key])
+
+    slurm_dict['postcal_scripts'] = POSTCAL_SCRIPTS_COMB
+    slurm_dict['precal_scripts'] = []
+    slurm_dict['scripts'] = []
+    arg_dict['scripts'] = []
+          
+    #Overwrite CL parameters in config under section [slurm]
+    config_parser.overwrite_config(filename, conf_dict=slurm_dict, conf_sec='slurm')
+
+    #Add MS to config file under section [data] and dopol under section [run]
+    config_parser.overwrite_config(filename, conf_dict={'vis' : "'{0}'".format(MS)}, conf_sec='data')
+   
+    config_parser.overwrite_config(filename, conf_dict={'scripts' : arg_dict['scripts']}, conf_sec='slurm')
+
+    logger.info('Config "{0}" generated.'.format(filename))
+    
 def get_slurm_dict(arg_dict,slurm_config_keys):
 
     """Build a slurm dictionary to be inserted into config file, using specified keys.
@@ -1163,6 +1251,12 @@ def format_args(config,submit,quiet,dependencies,justrun):
     #Ensure all keys exist in these sections
     kwargs = get_config_kwargs(config,'slurm',SLURM_CONFIG_KEYS)
     data_kwargs = get_config_kwargs(config,'data',['vis'])
+    # if ',' in data_kwargs['vis']:
+    #     combTracks = True
+    # else:
+    #     combTracks=False
+    
+    # if not combTracks:
     field_kwargs = get_config_kwargs(config, 'fields', FIELDS_CONFIG_KEYS)
     crosscal_kwargs = get_config_kwargs(config, 'crosscal', CROSSCAL_CONFIG_KEYS)
 
@@ -1171,6 +1265,7 @@ def format_args(config,submit,quiet,dependencies,justrun):
         kwargs['submit'] = True
 
     #Ensure nspw is integer
+    # if not combTracks:
     if type(crosscal_kwargs['nspw']) is not int:
         logger.warning("Argument 'nspw'={0} in '{1}' is not an integer. Will set to integer ({2}).".format(crosscal_kwargs['nspw']),config,int(crosscal_kwargs['nspw']))
         crosscal_kwargs['nspw'] = int(crosscal_kwargs['nspw'])
@@ -1245,8 +1340,19 @@ def format_args(config,submit,quiet,dependencies,justrun):
     kwargs['num_precal_scripts'] = len(kwargs['precal_scripts'])
 
     # Validate kwargs along with MS
-    kwargs['MS'] = data_kwargs['vis']
-    validate_args(kwargs,config)
+    if ',' in data_kwargs['vis']:
+    
+    # if combTracks:
+        MSs = data_kwargs['vis'].split(',')
+        # print(MSs)
+        for MS in MSs:
+            kwargs['MS'] = MS
+            validate_args(kwargs,config)
+        kwargs['MS'] = MSs
+            
+    else:
+        kwargs['MS'] = data_kwargs['vis']
+        validate_args(kwargs,config)
 
     #Reformat scripts tuple/list, to extract scripts, threadsafe, and containers as parallel lists
     #Check that path to each script and container exists or is ''
@@ -1254,6 +1360,7 @@ def format_args(config,submit,quiet,dependencies,justrun):
     kwargs['threadsafe'] = [i[1] for i in scripts]
     kwargs['containers'] = [check_path(i[2]) for i in scripts]
 
+    # if not combTracks:
     if not crosscal_kwargs['createmms']:
         logger.info("You've set 'createmms = False' in '{0}', so forcing 'keepmms = False'. Will use single CPU for every job other than 'partition.py', 'quick_tclean.py' and 'selfcal_*.py', if present.".format(config))
         config_parser.overwrite_config(config, conf_dict={'keepmms' : False}, conf_sec='crosscal')
@@ -1272,7 +1379,8 @@ def format_args(config,submit,quiet,dependencies,justrun):
     #         kwargs['threadsafe'][kwargs['scripts'].index(threadsafe_script)] = True
 
     #Only reduce the memory footprint if we're not using all CPUs on each node
-    if kwargs['ntasks_per_node'] < NTASKS_PER_NODE_LIMIT and nspw > 1:
+    #not combTracks and
+    if  kwargs['ntasks_per_node'] < NTASKS_PER_NODE_LIMIT and nspw > 1:
         mem = int(mem // (nspw/2))
 
     dopol = config_parser.get_key(config, 'run', 'dopol')
@@ -1282,6 +1390,7 @@ def format_args(config,submit,quiet,dependencies,justrun):
 
     includes_partition = any('partition' in script for script in kwargs['scripts'])
     #If single correctly formatted spw, split into nspw directories, and process each spw independently
+    #not combTracks
     if nspw > 1:
         #Write timestamp to this pipeline run
         kwargs['timestamp'] = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -1290,6 +1399,7 @@ def format_args(config,submit,quiet,dependencies,justrun):
         config_parser.overwrite_config(config, conf_dict={'nspw' : "{0}".format(nspw)}, conf_sec='crosscal')
 
     #Pop script to calculate reference antenna if calcrefant=False. Assume it won't be in postcal scripts
+    # if not combTracks:
     if not crosscal_kwargs['calcrefant']:
         if pop_script(kwargs,'calc_refant.py'):
             kwargs['num_precal_scripts'] -= 1
@@ -1304,6 +1414,7 @@ def format_args(config,submit,quiet,dependencies,justrun):
     kwargs.pop('postcal_scripts')
     kwargs['quiet'] = quiet
     kwargs['justrun'] = justrun
+    # kwargs['combTracks'] = combTracks
 
     #Force overwrite of dependencies
     if dependencies != '':
@@ -1441,7 +1552,7 @@ def spw_split(spw,nspw,config,mem,badfreqranges,MS,partition,createmms=True,remo
     #Create each spw as directory and place config in there
     logger.info("Making {0} directories for SPWs ({1}) and copying '{2}' to each of them.".format(nspw,SPWs,config))
     for spw in SPWs:
-        spw_config = '{0}/{1}'.format(spw.replace(SPW_PREFIX,''),config)
+        spw_config = '{0}/{1}'.format(spw.replace(SPW_PREFIX,''),config.split('/')[-1])
         if not os.path.exists(spw.replace(SPW_PREFIX,'')):
             os.mkdir(spw.replace(SPW_PREFIX,''))
         copyfile(config, spw_config)
@@ -1544,8 +1655,11 @@ def main():
         logger.info(license)
     if args.build:
         default_config(vars(args))
+    if args.combtracks:
+        default_config_comb(vars(args))
     if args.run:
         kwargs = format_args(args.config,args.submit,args.quiet,args.dependencies,args.justrun)
+        print(kwargs)
         write_jobs(args.config, **kwargs)
 
 if __name__ == "__main__":

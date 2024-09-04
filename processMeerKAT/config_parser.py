@@ -13,7 +13,7 @@ def parse_args():
     Parse the command line arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-C','--config', default=processMeerKAT.CONFIG, required=False, help='Name of the input config file')
+    parser.add_argument('-C','--config', default=processMeerKAT.CONFIG_LINE, required=False, help='Name of the input config file')
 
     args, __ = parser.parse_known_args()
 
@@ -176,4 +176,3 @@ def validate_args(kwdict, section, key, dtype, default=None):
 if __name__ == '__main__':
     cliargs = parse_args()
     taskvals,config = parse_config(cliargs.config)
-    print(taskvals)

@@ -64,7 +64,7 @@ def selfcal_part2(vis, refant, dopol, nloops, loop, cell, robust, imsize, wprojp
     else:
         logger.warning("Skipping selfcal loop {0} since calmode == ''.".format(loop))
 
-def pybdsf(imbase,rmsfile,imagename,outimage,thresh,maskfile,cat,trim_box=None,write_all=True):
+def pybdsf(loop,imbase,rmsfile,imagename,outimage,thresh,maskfile,cat, atrous_do=False,trim_box=None,write_all=True):
 
     fitsname = outimage
 
@@ -78,7 +78,7 @@ def pybdsf(imbase,rmsfile,imagename,outimage,thresh,maskfile,cat,trim_box=None,w
         rms_box_bright=(40,5), advanced_opts=True, fittedimage_clip=3.0,
         group_tol=0.5, group_by_isl=False, mean_map='map',
         rms_box=(100,30), rms_map=True, thresh='hard', thresh_isl=thresh, thresh_pix=thresh,
-        blank_limit=1e-10, trim_box=trim_box)
+        blank_limit=1e-10, trim_box=trim_box, atrous_do = atrous_do)
 
     # Write out island mask and FITS catalog
     img.export_image(outfile=maskfile, img_type='island_mask', img_format='casa', clobber=True)
@@ -96,7 +96,7 @@ def pybdsf(imbase,rmsfile,imagename,outimage,thresh,maskfile,cat,trim_box=None,w
         img.export_image(outfile=rmsfile, img_type='rms', img_format='casa', clobber=True)
 
 def find_outliers(vis, refant, dopol, nloops, loop, cell, robust, imsize, wprojplanes, niter, threshold, uvrange, nterms,
-                  gridder, deconvolver, solint, calmode, discard_nloops, gaintype, outlier_threshold, outlier_radius, flag, step):
+                  gridder, deconvolver, solint, calmode, discard_nloops, gaintype, outlier_threshold, outlier_radius, flag, step, atrous_do):
 
     local = locals()
     local.pop('step')
@@ -109,7 +109,7 @@ def find_outliers(vis, refant, dopol, nloops, loop, cell, robust, imsize, wprojp
     outlier_min_flux = 1e-3 # 1 mJy
 
     if step != 'sky':
-        pybdsf(imbase,rmsfile,imagename,outimage,thresh,maskfile,cat)
+        pybdsf(loop,imbase,rmsfile,imagename,outimage,thresh,maskfile,cat, atrous_do=atrous_do[loop])
 
     #Store before potentially updating to mJy
     orig_threshold = outlier_threshold
@@ -406,6 +406,7 @@ if __name__ == '__main__':
 
     selfcal_part2(**params)
     rmsmap,outlierfile = find_outliers(**params,step='bdsf')
+    params.pop('atrous_do')
     pixmask = mask_image(**params)
 
     loop += 1

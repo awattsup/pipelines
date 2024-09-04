@@ -87,5 +87,6 @@ def selfcal_part1(vis, refant, dopol, nloops, loop, cell, robust, imsize, wprojp
 if __name__ == '__main__':
 
     args,params = bookkeeping.get_selfcal_params()
+    params.pop('atrous_do')
     selfcal_part1(**params)
     bookkeeping.rename_logs(logfile)

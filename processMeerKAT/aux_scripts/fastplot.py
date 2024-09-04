@@ -9,7 +9,7 @@ import os,sys,time
 
 from casatasks import *
 logfile=casalog.logfile()
-casalog.setlogfile('logs/{SLURM_JOB_NAME}-{SLURM_JOB_ID}.casa'.format(**os.environ))
+casalog.setlogfile('logs/log.casa'.format(**os.environ))
 
 from casatools import table,msmetadata
 tb = table()

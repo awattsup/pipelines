@@ -186,6 +186,11 @@ def get_selfcal_args(vis,loop,nloops,nterms,deconvolver,discard_nloops,calmode,o
     from read_ms import check_spw
     msmd = msmetadata()
     qa = quanta()
+    
+    if ',' in vis:
+        vis = vis.split(',')[0]
+        combTracks = True
+        
 
     if os.path.exists('{0}/SUBMSS'.format(vis)):
         tmpvis = glob.glob('{0}/SUBMSS/*'.format(vis))[0]
@@ -213,6 +218,9 @@ def get_selfcal_args(vis,loop,nloops,nterms,deconvolver,discard_nloops,calmode,o
 
     target_str = msmd.namesforfields(targetfield)[0]
 
+    if combTracks:
+        visbase = os.getcwd().split('/')[-1]
+    
     if '.ms' in visbase and target_str not in visbase:
         basename = visbase.replace('.ms','.{0}'.format(target_str))
     else:
@@ -334,8 +342,13 @@ def run_script(func,logfile=''):
 
     # Parse config file
     taskvals, config = config_parser.parse_config(args['config'])
+    # if ',' in taskvals['data']['vis']:
+    #     combTracks = True
+    # else:
+    #     combTracks=False
 
     continue_run = config_parser.validate_args(taskvals, 'run', 'continue', bool, default=True)
+    # if not combTracks:
     spw = config_parser.validate_args(taskvals, 'crosscal', 'spw', str)
     nspw = config_parser.validate_args(taskvals, 'crosscal', 'nspw', int)
 
