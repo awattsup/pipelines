@@ -135,6 +135,9 @@ if __name__ == '__main__':
     #make mask for imaging    
     rmsmap, outlierfile, pixmask = makeMask(params,method=method)
     
+    print(rmsmap)
+    print(outlierfile)
+    print(pixmask)
     
     loop = params['loop']
     

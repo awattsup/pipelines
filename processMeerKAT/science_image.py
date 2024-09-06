@@ -103,7 +103,11 @@ def do_pb_corr(inpimage, pbthreshold=0, pbband='LBand'):
 
 def science_image(vis, spw, cell, robust, imsize, wprojplanes, niter, threshold, multiscale, nterms, gridder, deconvolver, specmode, uvtaper, restfreq, restoringbeam, stokes, mask, rmsmap, outlierfile, keepmms, pbthreshold, pbband, fitspw):
 
-    visbase = os.path.split(vis.rstrip('/ '))[1] # Get only vis name, not entire path
+    if ',' in vis:
+        vis = vis.split(',')
+        visbase = os.getcwd().split('/')[-1]
+    else:
+        visbase = os.path.split(vis.rstrip('/ '))[1] # Get only vis name, not entire path
     extn = '.ms' if keepmms==False else '.mms'
     imagename = visbase.replace(extn, '.science_image') # Images will be produced in $CWD
 
@@ -152,6 +156,6 @@ def science_image(vis, spw, cell, robust, imsize, wprojplanes, niter, threshold,
 if __name__ == '__main__':
 
     args,params = bookkeeping.get_imaging_params()
-    params['fitspw'] = config_parser.get_key(args['config'], "image", "fitspw")
+    params['fitspw'] = config_parser.get_key(args['config'], "image", "fitspw")        
     science_image(**params)
     bookkeeping.rename_logs(logfile)

@@ -441,7 +441,7 @@ def write_command(script,args,name='job',mpi_wrapper=MPI_WRAPPER,container=CONTA
 
         """ % SPWs.replace(',',' ').replace(SPW_PREFIX,'')
 
-    command += "{mpi_wrapper} singularity exec {container} {plot_call} {casa_call} {script} {args}".format(**params)
+    command += "{mpi_wrapper} singularity exec --bind /scratch/awatts:/scratch/awatts --bind /mnt/science1/mauve:/mnt/science1/mauve {container} {plot_call} {casa_call} {script} {args}".format(**params)
 
     if arrayJob:
         command += '\ncd ..\n'
