@@ -92,6 +92,7 @@ deconvolver = 'mtmfs'
 specmode = 'mfs'                 # 'mfs' for continuum image, 'cube' for spectral-line image
 uvtaper = ''
 restfreq = '1420.406MHz'          # HI line (change for other emission lines - e.g. OH)
+fitspw = ''
 fitorder = 1                      # Order of polynomial fit to continuum during uvcontsub
 restoringbeam = ''
 stokes = 'I'
