@@ -38,9 +38,9 @@ logging.basicConfig(format="%(asctime)-15s %(levelname)s: %(message)s")
 
 #Set global limits for current ilifu cluster configuration
 TOTAL_NODES_LIMIT = 3
-CPUS_PER_NODE_LIMIT = 48
+CPUS_PER_NODE_LIMIT = 32
 NTASKS_PER_NODE_LIMIT = CPUS_PER_NODE_LIMIT
-MEM_PER_NODE_GB_LIMIT = 374 #257568 MB
+MEM_PER_NODE_GB_LIMIT = 250 #257568 MB
 MEM_PER_NODE_GB_LIMIT_HIGHMEM = 1508 #1544192 MB
 
 #Set global values for paths and file names
@@ -65,11 +65,12 @@ SELFCAL_CONFIG_KEYS = ['nloops','loop','cell','robust','imsize','wprojplanes','n
 IMAGING_CONFIG_KEYS = ['cell', 'robust', 'imsize', 'wprojplanes', 'niter', 'threshold', 'multiscale', 'nterms', 'gridder', 'deconvolver', 'specmode', 'uvtaper', 'restfreq', 'fitspw', 'fitorder', 'restoringbeam', 'stokes', 'mask', 'rmsmap','outlierfile', 'pbthreshold', 'pbband']
 SLURM_CONFIG_STR_KEYS = ['container','mpi_wrapper','partition','time','name','dependencies','exclude','account','reservation']
 SLURM_CONFIG_KEYS = ['nodes','ntasks_per_node','mem','plane','submit','precal_scripts','postcal_scripts','scripts','verbose','modules'] + SLURM_CONFIG_STR_KEYS
-CONTAINER = '/home/awatts/Scisoft/containers/casa-6.simg'
+CONTAINER = '/idia/software/containers/casa-6.5.0-modular.sif'
 MPI_WRAPPER = 'mpirun'
 PRECAL_SCRIPTS = [('calc_refant.py',False,''),('partition.py',True,'')] #Scripts run before calibration at top level directory when nspw > 1
+# POSTCAL_SCRIPTS = []
 POSTCAL_SCRIPTS_CONT = [('concat.py',False,''),('plotcal_spw.py', False, ''),('selfcal_part1.py',True,''),('selfcal_part2.py',False,''),('science_image.py', True,'')] 
-POSTCAL_SCRIPTS_LINE = [('concat.py',False,''), ('plotcal_spw.py', False, ''), ('selfcal_part1.py',True,''), ('selfcal_part2.py',False,''), ('uvsub.py', False, ''), ('uvcontsub.py', True, ''), ('science_image.py', False, '')]
+POSTCAL_SCRIPTS_LINE = [('concat.py',False,''), ('plotcal_spw.py', False, ''), ('selfcal_part1.py',True,''), ('selfcal_part2.py',False,''), ('uvsub.py', False, ''),  ('uvcontsub.py', True, ''), ('science_image.py', False, '')]
 POSTCAL_SCRIPTS_COMB = [('prepareTracks.py',True,''),('science_image.py',True,'')]                                                                               
 SCRIPTS = [('validate_input.py',False,''),
          ('flag_round_1.py',True,''),
@@ -199,12 +200,12 @@ def parse_args():
                             help="Distribute tasks of this block size before moving onto next node [default: 1; max: ntasks-per-node].")
     parser.add_argument("-m","--mem", metavar="num", required=False, type=int, default=MEM_PER_NODE_GB_LIMIT,
                         help="Use this many GB of memory (per node) for threadsafe scripts [default: {0}; max: {0}].".format(MEM_PER_NODE_GB_LIMIT))
-    parser.add_argument("-p","--partition", metavar="name", required=False, type=str, default="main", help="SLURM partition to use [default: 'Main'].")
+    parser.add_argument("-p","--partition", metavar="name", required=False, type=str, default="Main", help="SLURM partition to use [default: 'Main'].")
     parser.add_argument("-T","--time", metavar="time", required=False, type=str, default="12:00:00", help="Time limit to use for all jobs, in the form d-hh:mm:ss [default: '12:00:00'].")
     parser.add_argument("-S","--scripts", action='append', nargs=3, metavar=('script','threadsafe','container'), required=False, type=parse_scripts, default=SCRIPTS,
                         help="Run pipeline with these scripts, in this order, using these containers (3rd value - empty string to default to [-c --container]). Is it threadsafe (2nd value)?")
     parser.add_argument("-b","--precal_scripts", action='append', nargs=3, metavar=('script','threadsafe','container'), required=False, type=parse_scripts, default=PRECAL_SCRIPTS, help="Same as [-S --scripts], but run before calibration.")
-    parser.add_argument("-a","--postcal_scripts", action='append', nargs=3, metavar=('script','threadsafe','container'), required=False, type=parse_scripts, default=POSTCAL_SCRIPTS_LINE, help="Same as [-S --scripts], but run after calibration.")
+    parser.add_argument("-a","--postcal_scripts", action='append', nargs=3, metavar=('script','threadsafe','container'), required=False, type=parse_scripts, default=[], help="Same as [-S --scripts], but run after calibration.")
     parser.add_argument("--modules", nargs='*', metavar='module', required=False, default=['openmpi/4.0.3'], help="Load these modules within each sbatch script.")
     parser.add_argument("-w","--mpi_wrapper", metavar="path", required=False, type=str, default=MPI_WRAPPER,
                         help="Use this mpi wrapper when calling threadsafe scripts [default: '{0}'].".format(MPI_WRAPPER))
@@ -237,6 +238,12 @@ def parse_args():
     run_args.add_argument("-L","--license", action="store_true", required=False, default=False, help="Display this program's license and quit.")
 
     args, unknown = parser.parse_known_args()
+    if args.doCONT:
+        parser.set_defaults(postcal_scripts = POSTCAL_SCRIPTS_CONT)
+    if args.doLINE:
+        parser.set_defaults(postcal_scripts = POSTCAL_SCRIPTS_LINE)
+    args, unknown = parser.parse_known_args()
+
 
     if len(unknown) > 0:
         parser.error('Unknown input argument(s) present - {0}'.format(unknown))
@@ -247,15 +254,18 @@ def parse_args():
         if not os.path.exists(args.config):
             parser.error("Input config file '{0}' not found. Please set [-C --config] or write a new one with [-B --build].".format(args.config))
 
-    global POSTCAL_SCRIPTS
-    if args.doCONT:
-        POSTCAL_SCRIPTS = POSTCAL_SCRIPTS_CONT
-        # global POSTCAL_SCRIPTS 
+    # global POSTCAL_SCRIPTS
+    # # global POSTCAL_SCRIPTS_CONT
+    # # global POSTCAL_SCRIPTS_LINE
+    # if args.doCONT:
+    #     print('Setting POSTCAL scripts to continuum reduction')
+    #     POSTCAL_SCRIPTS = POSTCAL_SCRIPTS_CONT
+    # #     # args.postcal_scripts = POSTCAL_SCRIPTS_CONT
+    # elif args.doLINE:
+    #     print('Setting POSTCAL scripts to line reduction')
+    #     POSTCAL_SCRIPTS = POSTCAL_SCRIPTS_LINE
+    # #     # args.postcal_scrips = POSTCAL_SCRIPTS_LINE
 
-    elif args.doLINE:
-        POSTCAL_SCRIPTS = POSTCAL_SCRIPTS_LINE
-        # global POSTCAL_SCRIPTS 
-            
 
     if args.combtracks:
         args.do2GC = True
@@ -267,11 +277,9 @@ def parse_args():
         [args.scripts.pop(0) for i in range(len(SCRIPTS))]
     if len(args.precal_scripts) > len(PRECAL_SCRIPTS):
         [args.precal_scripts.pop(0) for i in range(len(PRECAL_SCRIPTS))]    
-    if args.doCONT:
-        if len(args.postcal_scripts) > len(POSTCAL_SCRIPTS_CONT):
+    if args.doCONT and len(args.postcal_scripts) > len(POSTCAL_SCRIPTS_CONT):
             [args.postcal_scripts.pop(0) for i in range(len(POSTCAL_SCRIPTS_CONT))]
-    elif args.doLINE:
-        if len(args.postcal_scripts) > len(POSTCAL_SCRIPTS_LINE):
+    if args.doLINE and len(args.postcal_scripts) > len(POSTCAL_SCRIPTS_LINE):
             [args.postcal_scripts.pop(0) for i in range(len(POSTCAL_SCRIPTS_LINE))]
     #validate arguments before returning them
     validate_args(vars(args),args.config,parser=parser)
@@ -571,11 +579,9 @@ def write_sbatch(script,args,nodes=1,tasks=16,mem=MEM_PER_NODE_GB_LIMIT,name="jo
 
     export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
     export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
-    #module use --append /home/awatts/privatemodules
+      
 
-    source /home/awatts/Scisoft/miniconda3/bin/activate procMKT-mpi
-
-    #{modules}
+    {modules}
 
     {command}"""
 
@@ -1032,8 +1038,6 @@ def write_jobs(config, scripts=[], threadsafe=[], containers=[], num_precal_scri
     #                       'nspw':11}
     pad_length = len(name)
 
-    # print(scripts)
-    # exit()
     #Write sbatch file for each input python script
     for i,script in enumerate(scripts):
         jobname = os.path.splitext(os.path.split(script)[1])[0]
@@ -1072,6 +1076,7 @@ def default_config(arg_dict):
     filename = arg_dict['config']
     MS = arg_dict['MS']
 
+    
     #Copy default config to current location
     if arg_dict['doCONT']:
         copyfile('{0}/{1}'.format(SCRIPT_DIR,CONFIG_CONT),filename)
@@ -1100,6 +1105,9 @@ def default_config(arg_dict):
             remove_scripts += ['science_image.py']
 
         scripts = arg_dict['postcal_scripts']
+
+        # print(scripts)
+        # print(remove_scripts)
         i = 0
         while i < len(scripts):
             if scripts[i][0] in remove_scripts:
@@ -1655,7 +1663,7 @@ def main():
     args = parse_args()
     setup_logger(args.config,args.verbose)
  
-
+        
     #Mutually exclusive arguments - display version, build config file or run pipeline
     if args.version:
         logger.info('This is version {0}'.format(__version__))
