@@ -190,6 +190,8 @@ def get_selfcal_args(vis,loop,nloops,nterms,deconvolver,discard_nloops,calmode,o
     if ',' in vis:
         vis = vis.split(',')[0]
         combTracks = True
+    else:
+        combTracks = False
         
 
     if os.path.exists('{0}/SUBMSS'.format(vis)):
