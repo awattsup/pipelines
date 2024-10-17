@@ -90,11 +90,11 @@ nterms = 2                        # Number of taylor terms
 gridder = 'wproject'
 deconvolver = 'multiscale'
 specmode = 'cube'                 # 'mfs' for continuum image, 'cube' for spectral-line image
-uvtaper = '10arcsec'
+uvtaper = ''
 restfreq = '1420.406MHz'          # HI line (change for other emission lines - e.g. OH)
 fitspw = ''                       # Emission line frequencies to exclude from fit to continuum during uvcontsub, and SPW to select for imaging when specmode='cube'
 fitorder = 1                      # Order of polynomial fit to continuum during uvcontsub
-restoringbeam = '10arcsec'
+restoringbeam = ''
 stokes = 'I'
 pbthreshold = 0.1                 # Threshold below which to mask the PB for PB correction
 pbband = 'LBand'                  # Which band to use to generate the PB - one of "LBand" "SBand" or "UHF"
