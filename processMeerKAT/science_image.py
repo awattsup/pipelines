@@ -130,6 +130,9 @@ def science_image(vis, spw, cell, robust, imsize, wprojplanes, niter, threshold,
         if fitspw != '':
             spw = fitspw
 
+            if isinstance(vis,list):
+                spw = [spw]*len(vis)
+
     if not os.path.exists(imname):
 
         tclean(vis=vis, selectdata=False, datacolumn='corrected', imagename=imagename,
