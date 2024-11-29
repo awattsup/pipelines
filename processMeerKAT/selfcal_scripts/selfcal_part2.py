@@ -64,7 +64,7 @@ def selfcal_part2(vis, refant, dopol, nloops, loop, cell, robust, imsize, wprojp
     else:
         logger.warning("Skipping selfcal loop {0} since calmode == ''.".format(loop))
 
-def pybdsf(imbase,rmsfile,imagename,outimage,thresh,maskfile,cat,trim_box=None,write_all=True):
+def pybdsf(imbase,rmsfile,imagename,outimage,thresh,maskfile,cat,loop,trim_box=None,write_all=True):
 
     fitsname = outimage
 
